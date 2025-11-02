@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Progress Widget</title>
+    <style>
+        body {
+            font-family: 'Pretendard', 'Arial', sans-serif;
+            background-color: #f0f4f8; 
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: transparent; 
+            width: 100%;
+            max-width: 420px; 
+            padding: 15px; 
+            border-radius: 12px;
+            box-shadow: none; 
+            text-align: center;
+            font-size: 13px; 
+            border: none; 
+        }
+
+        h3 {
+            display: none;
+        }
+
+        /* --- 설정 토글 버튼 (⚙️ 이모지) 스타일 --- */
+        .toggle-button {
+            cursor: pointer;
+            font-size: 16px; 
+            color: #2c3e50; 
+            user-select: none; 
+            opacity: 0.2; 
+            transition: opacity 0.3s ease; 
+        }
+        .toggle-button:hover {
+            opacity: 1; 
+        }
+
+        /* --- 입력 및 버튼 레이아웃: 토글 대상 (오른쪽 정렬) --- */
+        .controls-area {
+            display: flex;
+            justify-content: flex-end; 
+            align-items: center; 
+            width: 100%;
+            margin-bottom: 8px; 
+            max-height: 100px; 
+            opacity: 1;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out, margin-bottom 0.5s ease-out;
+        }
+
+        .controls-area.hidden {
+            max-height: 0;
+            opacity: 0;
+            margin-bottom: 0; 
+            padding: 0;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: row; 
+            align-items: center;
+            gap: 2px;
+            width: auto; 
+            text-align: left;
+            flex-grow: 0; 
+            margin-right: 15px; 
+        }
+
+        label {
+            font-size: 12px;
+            color: #2c3e50; 
+            width: auto; 
+            min-width: 30px; 
+            text-align: right; 
+            font-weight: 600; 
+            margin-right: 2px; 
+        }
+
+        input {
+            padding: 4px 6px; 
+            font-size: 12px; 
+            width: 50px; 
+            border: 1px solid #dcdcdc;
+            border-radius: 6px; 
+            background-color: #ffffff; 
+            box-sizing: border-box;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); 
+            transition: all 0.3s ease;
+            margin-right: 0; 
+        }
+
+        .input-group input:focus {
+            border-color: #5fa8b4;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 1px rgba(119, 196, 211, 0.2); 
+            outline: none;
+        }
+
+        button {
+            padding: 4px 8px; 
+            background-color: #77c4d3;
+            border: none;
+            border-radius: 5px; 
+            color: white;
+            font-size: 12px; 
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(119, 196, 211, 0.4); 
+            transition: all 0.3s ease;
+            margin-left: 0; 
+        }
+
+        button:hover {
+            background-color: #5fa8b4;
+            box-shadow: 0 2px 5px rgba(119, 196, 211, 0.5);
+            transform: translateY(-0.5px);
+        }
+
+        /* --- 색상 선택기 스타일 --- */
+        .color-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-right: 15px;
+            font-size: 12px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        #colorPicker {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 20px; 
+            height: 20px;
+            background: none;
+            border: 1px solid #dcdcdc;
+            cursor: pointer;
+            padding: 0;
+            border-radius: 4px;
+        }
+        #colorPicker::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        #colorPicker::-webkit-color-swatch {
+            border: none;
+            border-radius: 3px;
+        }
+
+        /* --- 진행률 바 레이아웃 --- */
+        .progress-container {
+            margin-top: 0; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 2px 0; 
+            border-top: 1px dashed #e0e0e0;
+            cursor: pointer; 
+        }
+        .progress-container:last-child {
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        .progress-container:hover {
+            background-color: #f7f7f7; 
+        }
+
+        .progress-label {
+            font-size: 13px;
+            color: #2c3e50;
+            text-align: left;
+            width: 18%; 
+            font-weight: 600;
+        }
+
+        .progress-bar {
+            flex-grow: 1;
+            height: 9px; 
+            background-color: #e9eef3; 
+            border-radius: 8px; 
+            margin: 0 10px; 
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .progress {
+            height: 100%;
+            background: #77c4d3; 
+            border-radius: 8px;
+            width: 0;
+            transition: width 0.5s ease-out;
+            box-shadow: 0 0 3px rgba(119, 196, 211, 0.5);
+        }
+
+        p {
+            font-size: 13px;
+            color: #2c3e50;
+            width: 8%; 
+            text-align: right;
+            font-weight: 600;
+        }
+
+        /* --- 상세 통계 팝업 스타일 (중앙 고정) --- */
+        #detailPopup {
+            position: fixed; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 15px;
+            width: 250px;
+            z-index: 1000;
+            display: none;
+            text-align: left;
+        }
+
+        #detailPopup.visible {
+            display: block;
+        }
+
+        #detailPopup h3 {
+            display: block; 
+            font-size: 14px;
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        #popupContent p {
+            font-size: 12px;
+            margin: 5px 0;
+            color: #555;
+            width: auto; 
+            text-align: left;
+        }
+        #popupContent strong {
+            color: #333;
+            font-weight: 600;
+        }
+    </style>
+    </head>
+<body>
+
+    <div class="container">
+        
+        <div style="width: 100%; text-align: right; margin-bottom: 5px;">
+            <span class="toggle-button" onclick="toggleControls()">⚙️</span>
+        </div>
+
+        <div class="controls-area hidden" id="controlsArea">
+            <div class="input-group">
+                <label for="currentAge">나이</label>
+                <input type="number" id="currentAge" value="30" min="0" max="120">
+                
+                <label for="expectedLife">수명</label>
+                <input type="number" id="expectedLife" value="90" min="50" max="120">
+            </div>
+
+            <div class="color-group">
+                <label for="colorPicker">색상</label>
+                <input type="color" id="colorPicker" value="#77c4d3" onchange="applyColor(this.value)">
+            </div>
+
+            <button onclick="updateProgress()">계산</button>
+        </div>
+        <div class="progress-container" id="dayProgressContainer" onclick="showDetail('day')">
+            <div class="progress-label">오늘</div>
+            <div class="progress-bar">
+                <div class="progress" id="dayProgress"></div>
+            </div>
+            <p id="dayStatus">0%</p>
+            </div>
+
+        <div class="progress-container" id="weekProgressContainer" onclick="showDetail('week')">
+            <div class="progress-label">이번 주</div>
+            <div class="progress-bar">
+                <div class="progress" id="weekProgress"></div>
+            </div>
+            <p id="weekStatus">0%</p>
+        </div>
+
+        <div class="progress-container" id="monthProgressContainer" onclick="showDetail('month')">
+            <div class="progress-label">이번 달</div>
+            <div class="progress-bar">
+                <div class="progress" id="monthProgress"></div>
+            </div>
+            <p id="monthStatus">0%</p>
+        </div>
+
+        <div class="progress-container" id="yearProgressContainer" onclick="showDetail('year')">
+            <div class="progress-label"><span id="yearLabel">2025</span>년</div>
+            <div class="progress-bar">
+                <div class="progress" id="yearProgress"></div>
+            </div>
+            <p id="yearStatus">0%</p>
+        </div>
+        
+        <div class="progress-container" id="lifeProgressContainer" onclick="showDetail('life')">
+            <div class="progress-label">시간의 흐름</div>
+            <div class="progress-bar">
+                <div class="progress" id="lifeProgress"></div>
+            </div>
+            <p id="lifeStatus">0%</p>
+        </div>
+        
+        <div id="detailPopup" onclick="event.stopPropagation()">
+            <div id="popupContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // 전역 변수: 상세 통계 계산에 필요한 데이터를 저장합니다.
+        let detailData = {}; 
+        
+        const MS_PER_DAY = 1000 * 60 * 60 * 24;
+        const MS_PER_HOUR = 1000 * 60 * 60;
+
+        // 현재 날짜 및 시간 정보를 가져오는 함수 (1초마다 반복됨)
+        function updateProgress() {
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth(); 
+            const currentDay = currentDate.getDate();
+            const currentHour = currentDate.getHours();
+            const currentMinute = currentDate.getMinutes();
+            const currentSecond = currentDate.getSeconds();
+
+            const currentAge = parseInt(document.getElementById('currentAge').value) || 0;
+            const expectedLife = parseInt(document.getElementById('expectedLife').value) || 90;
+            
+            // HTML 요소
+            const dayProgress = document.getElementById('dayProgress');
+            const weekProgress = document.getElementById('weekProgress');
+            const monthProgress = document.getElementById('monthProgress');
+            const yearProgress = document.getElementById('yearProgress');
+            const lifeProgress = document.getElementById('lifeProgress');
+            document.getElementById('yearLabel').innerText = currentYear;
+
+
+            // ----------------------------------------------------
+            // 📊 1. 시간의 흐름 (인생) 계산
+            // ----------------------------------------------------
+            const startOfLife = new Date(currentYear - currentAge, currentMonth, currentDay, currentHour, currentMinute, currentSecond, currentDate.getMilliseconds()); 
+            const endOfLife = new Date(startOfLife);
+            endOfLife.setFullYear(startOfLife.getFullYear() + expectedLife);
+
+            const lifeSpanMs = endOfLife - startOfLife;
+            const currentLifeDurationMs = currentDate - startOfLife;
+            let lifeProgressPercentage = (currentLifeDurationMs / lifeSpanMs) * 100;
+            
+            if (lifeProgressPercentage >= 0 && lifeProgressPercentage <= 100) {
+                lifeProgress.style.width = lifeProgressPercentage + '%';
+                document.getElementById('lifeStatus').innerText = `${Math.round(lifeProgressPercentage)}%`;
+            } else if (lifeProgressPercentage > 100) {
+                lifeProgress.style.width = '100%';
+                document.getElementById('lifeStatus').innerText = `100%+`;
+            } else {
+                lifeProgress.style.width = '0%';
+                document.getElementById('lifeStatus').innerText = `0%`;
+            }
+
+            // A. 시간의 흐름 (인생) 통계 데이터 저장
+            const totalDaysLife = lifeSpanMs / MS_PER_DAY;
+            const elapsedDaysLife = currentLifeDurationMs / MS_PER_DAY;
+            const remainingDaysLife = totalDaysLife - elapsedDaysLife;
+
+            detailData.life = `
+                <p><strong>총 수명:</strong> ${expectedLife}년 (${Math.round(totalDaysLife)}일)</p>
+                <p><strong>경과 시간:</strong> ${Math.floor(elapsedDaysLife)}일</p>
+                <p><strong>남은 시간:</strong> ${Math.ceil(remainingDaysLife)}일</p>
+            `;
+
+
+            // ----------------------------------------------------
+            // 📊 2. 이번 년도 계산
+            // ----------------------------------------------------
+            const startOfYear = new Date(currentYear, 0, 1);
+            const endOfYear = new Date(currentYear + 1, 0, 1);
+            const yearDurationMs = endOfYear - startOfYear;
+            const yearProgressPercentage = ((currentDate - startOfYear) / yearDurationMs) * 100;
+            yearProgress.style.width = yearProgressPercentage + '%';
+            document.getElementById('yearStatus').innerText = `${Math.round(yearProgressPercentage)}%`;
+
+            // B. 이번 년도 통계 데이터 저장
+            const elapsedDaysYear = (currentDate - startOfYear) / MS_PER_DAY;
+            const totalDaysYear = (endOfYear - startOfYear) / MS_PER_DAY;
+            const remainingDaysYear = totalDaysYear - elapsedDaysYear;
+            
+            detailData.year = `
+                <p><strong>총 일수:</strong> ${Math.round(totalDaysYear)}일</p>
+                <p><strong>경과 일수:</strong> ${Math.floor(elapsedDaysYear)}일</p>
+                <p><strong>남은 일수:</strong> ${Math.ceil(remainingDaysYear)}일</p>
+            `;
+
+
+            // ----------------------------------------------------
+            // 📊 3. 이번 달 계산
+            // ----------------------------------------------------
+            const startOfMonth = new Date(currentYear, currentMonth, 1);
+            const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+            const monthDurationMs = endOfMonth - startOfMonth;
+            const currentMonthDurationMs = currentDate - startOfMonth;
+            const monthProgressPercentage = (currentMonthDurationMs / monthDurationMs) * 100;
+            
+            monthProgress.style.width = monthProgressPercentage + '%';
+            document.getElementById('monthStatus').innerText = `${Math.round(monthProgressPercentage)}%`;
+
+            // C. 이번 달 통계 데이터 저장
+            const totalDaysMonth = monthDurationMs / MS_PER_DAY;
+            const elapsedDaysMonth = currentMonthDurationMs / MS_PER_DAY;
+            const remainingDaysMonth = totalDaysMonth - elapsedDaysMonth;
+            
+            detailData.month = `
+                <p><strong>총 일수:</strong> ${Math.round(totalDaysMonth)}일</p>
+                <p><strong>경과 일수:</strong> ${elapsedDaysMonth.toFixed(1)}일</p>
+                <p><strong>남은 일수:</strong> ${Math.ceil(remainingDaysMonth)}일</p>
+            `;
+
+
+            // ----------------------------------------------------
+            // 📊 4. 이번 주 계산
+            // ----------------------------------------------------
+            const startOfWeek = new Date(currentDate);
+            let dayOfWeek = currentDate.getDay(); 
+            dayOfWeek = (dayOfWeek === 0) ? 7 : dayOfWeek; 
+            const diffToMonday = 1 - dayOfWeek; 
+
+            startOfWeek.setDate(currentDate.getDate() + diffToMonday); 
+            startOfWeek.setHours(0, 0, 0, 0); 
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+            const weekDurationMs = endOfWeek - startOfWeek;
+            const currentWeekDurationMs = currentDate - startOfWeek;
+            const weekProgressPercentage = (currentWeekDurationMs / weekDurationMs) * 100;
+
+            weekProgress.style.width = weekProgressPercentage + '%';
+            document.getElementById('weekStatus').innerText = `${Math.round(weekProgressPercentage)}%`;
+
+            // D. 이번 주 통계 데이터 저장
+            const totalHoursWeek = 7 * 24;
+            const elapsedHoursWeek = currentWeekDurationMs / MS_PER_HOUR;
+            const remainingHoursWeek = totalHoursWeek - elapsedHoursWeek;
+            
+            detailData.week = `
+                <p><strong>총 시간:</strong> ${totalHoursWeek}시간 (7일)</p>
+                <p><strong>경과 시간:</strong> ${elapsedHoursWeek.toFixed(1)}시간</p>
+                <p><strong>남은 시간:</strong> ${remainingHoursWeek.toFixed(1)}시간</p>
+            `;
+
+            
+            // ----------------------------------------------------
+            // 📊 5. 오늘 계산
+            // ----------------------------------------------------
+            const totalSecondsInDay = 24 * 60 * 60;
+            const elapsedSeconds = currentHour * 3600 + currentMinute * 60 + currentSecond;
+            const dayProgressPercentage = (elapsedSeconds / totalSecondsInDay) * 100;
+            
+            dayProgress.style.width = dayProgressPercentage + '%';
+            document.getElementById('dayStatus').innerText = `${Math.round(dayProgressPercentage)}%`;
+
+            // E. 오늘 통계 데이터 저장
+            const elapsedHoursDay = elapsedSeconds / 3600;
+            const remainingHoursDay = 24 - elapsedHoursDay;
+
+            detailData.day = `
+                <p><strong>총 시간:</strong> 24시간</p>
+                <p><strong>경과 시간:</strong> ${elapsedHoursDay.toFixed(2)}시간</p>
+                <p><strong>남은 시간:</strong> ${remainingHoursDay.toFixed(2)}시간</p>
+            `;
+        }
+
+
+        // ----------------------------------------------------
+        // 🎨 색상 및 토글 기능 (변경 없음)
+        // ----------------------------------------------------
+        function applyColor(color) {
+            const progresses = document.querySelectorAll('.progress');
+            progresses.forEach(progress => {
+                progress.style.background = color;
+            });
+            localStorage.setItem('progressColor', color);
+        }
+
+        function loadAndApplyColor() {
+            const savedColor = localStorage.getItem('progressColor');
+            if (savedColor) {
+                applyColor(savedColor);
+                document.getElementById('colorPicker').value = savedColor;
+            } else {
+                applyColor('#77c4d3'); 
+            }
+        }
+
+        function toggleControls() {
+            const controls = document.getElementById('controlsArea');
+            controls.classList.toggle('hidden');
+        }
+
+        // ----------------------------------------------------
+        // 📊 상세 통계 팝업 기능 (대폭 수정: 데이터를 직접 사용)
+        // ----------------------------------------------------
+        function showDetail(type) { // 인자를 'type'으로 받습니다. (day, week, month, year, life)
+            // 1. 혹시 모를 경우를 대비해 통계 내용을 즉시 업데이트하여 최신 데이터를 detailData에 저장합니다.
+            updateProgress(); 
+
+            const popup = document.getElementById('detailPopup');
+            const content = document.getElementById('popupContent');
+            
+            const titleMap = {
+                'day': '오늘', 
+                'week': '이번 주', 
+                'month': '이번 달', 
+                'year': document.getElementById('yearLabel').textContent + '년', 
+                'life': '시간의 흐름'
+            };
+
+            const detailContent = detailData[type];
+            const title = titleMap[type];
+            
+            if (detailContent) {
+                // 2. 전역 변수에 저장된 내용을 팝업에 직접 삽입합니다. (HTML 요소 복사 오류 방지)
+                content.innerHTML = `<h3>${title} 상세 통계</h3>` + detailContent;
+            } else {
+                // 3. 디버깅 메시지 대신, 데이터를 찾을 수 없다는 안내를 띄웁니다.
+                content.innerHTML = `<h3>${title} 상세 통계</h3><p>데이터 준비 중... (잠시 후 다시 시도해 주세요)</p>`;
+            }
+
+            // 4. 팝업 표시
+            popup.classList.add('visible');
+            
+            // 5. 팝업 외부를 클릭하면 닫히도록 이벤트 리스너 추가
+            setTimeout(() => {
+                document.addEventListener('click', closePopupOutside);
+            }, 0);
+        }
+
+        function closePopup() {
+            document.getElementById('detailPopup').classList.remove('visible');
+            document.removeEventListener('click', closePopupOutside);
+        }
+
+        function closePopupOutside(event) {
+            const popup = document.getElementById('detailPopup');
+            const targetElement = event.target;
+            
+            if (!popup.contains(targetElement) && !targetElement.closest('.progress-container')) {
+                closePopup();
+            }
+        }
+
+        // 초기 로딩 및 1초마다 업데이트 설정
+        window.onload = function() {
+            // 초기 로딩 시 통계를 한 번 계산하고 (detailData에 내용 채우기)
+            updateProgress();
+            loadAndApplyColor();
+            // 1초마다 반복합니다.
+            setInterval(updateProgress, 1000);
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const popup = document.getElementById('detailPopup');
+            popup.addEventListener('click', (e) => e.stopPropagation()); 
+        });
+    </script>
+    </body>
+</html>
